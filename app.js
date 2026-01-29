@@ -201,8 +201,8 @@ function setupVisualizer() {
         const width = canvas.width;
         const height = canvas.height;
 
-        // Clear canvas
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        // Clear canvas with a slight trail
+        ctx.fillStyle = 'rgba(13, 40, 71, 0.2)';
         ctx.fillRect(0, 0, width, height);
 
         // Get analyser data
@@ -212,8 +212,10 @@ function setupVisualizer() {
             const { bufferLength, dataArray } = analyserData;
 
             // Draw waveform
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#4A90E2';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#4A90E2';
             ctx.beginPath();
 
             const sliceWidth = width / bufferLength;
@@ -234,6 +236,9 @@ function setupVisualizer() {
 
             ctx.lineTo(width, height / 2);
             ctx.stroke();
+
+            // Reset shadow
+            ctx.shadowBlur = 0;
 
             // Draw frequency indicator
             drawFrequencyIndicator(ctx, width, height);
@@ -287,7 +292,7 @@ function drawFrequencyIndicator(ctx, width, height) {
 function drawIdleState(ctx, width, height) {
     const time = Date.now() / 1000;
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.strokeStyle = 'rgba(74, 144, 226, 0.5)';
     ctx.lineWidth = 2;
     ctx.beginPath();
 
@@ -304,7 +309,7 @@ function drawIdleState(ctx, width, height) {
     ctx.stroke();
 
     // Draw message
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.font = '16px Noto Sans KR';
     ctx.textAlign = 'center';
     ctx.fillText('치료를 시작하려면 아래 버튼을 클릭하세요', width / 2, height / 2 + 60);
