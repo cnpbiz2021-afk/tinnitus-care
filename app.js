@@ -25,6 +25,12 @@ function initializeApp() {
     setupVisualizer();
     setupBottomNav();
 
+    // Setup auto-stop callback
+    audioEngine.onAutoStop = () => {
+        updateTherapyUI(false);
+        alert('권장 치료 시간인 30분이 경과하여 치료를 자동으로 종료합니다. 수고하셨습니다!');
+    };
+
     // Set initial sound selection
     selectSound('whitenoise');
 
@@ -175,21 +181,35 @@ function selectSound(soundType) {
 /**
  * Toggle therapy
  */
-async function toggleTherapy() {
+/**
+ * Update therapy UI state
+ */
+function updateTherapyUI(isPlaying) {
     const btn = document.getElementById('therapyBtn');
     const icon = document.getElementById('therapyBtnIcon');
     const text = document.getElementById('therapyBtnText');
 
-    if (audioEngine.isTherapyPlaying) {
-        audioEngine.stopTherapy();
-        btn.classList.remove('playing');
-        icon.textContent = '▶';
-        text.textContent = '치료 시작';
-    } else {
-        await audioEngine.startTherapy(audioEngine.currentSound);
+    if (isPlaying) {
         btn.classList.add('playing');
         icon.textContent = '⏸';
         text.textContent = '치료 중지';
+    } else {
+        btn.classList.remove('playing');
+        icon.textContent = '▶';
+        text.textContent = '치료 시작';
+    }
+}
+
+/**
+ * Toggle therapy
+ */
+async function toggleTherapy() {
+    if (audioEngine.isTherapyPlaying) {
+        audioEngine.stopTherapy();
+        updateTherapyUI(false);
+    } else {
+        await audioEngine.startTherapy(audioEngine.currentSound);
+        updateTherapyUI(true);
     }
 }
 

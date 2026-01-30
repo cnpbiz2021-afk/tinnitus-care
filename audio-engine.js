@@ -30,6 +30,9 @@ class TinnitusAudioEngine {
         this.therapyDuration = 0;
         this.timerInterval = null;
 
+        this.onAutoStop = null;
+        this.maxDuration = 1800; // 30 minutes in seconds
+
         this.initAudioContext();
     }
 
@@ -431,6 +434,14 @@ class TinnitusAudioEngine {
         this.timerInterval = setInterval(() => {
             this.therapyDuration = Math.floor((Date.now() - this.therapyStartTime) / 1000);
             this.updateTimerDisplay();
+
+            // Auto-stop check
+            if (this.therapyDuration >= this.maxDuration) {
+                this.stopTherapy();
+                if (typeof this.onAutoStop === 'function') {
+                    this.onAutoStop();
+                }
+            }
         }, 1000);
     }
 
