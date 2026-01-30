@@ -23,11 +23,27 @@ function initializeApp() {
     setupVolumeControl();
     setupSoundSelection();
     setupVisualizer();
+    setupBottomNav();
 
     // Set initial sound selection
     selectSound('whitenoise');
 
     console.log('Tinnitus Care initialized');
+}
+
+/**
+ * Setup bottom navigation for mobile
+ */
+function setupBottomNav() {
+    const bottomNavItems = document.querySelectorAll('.bottom-nav-item');
+    bottomNavItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            // Remove active from all
+            bottomNavItems.forEach(i => i.classList.remove('active'));
+            // Add to clicked
+            item.classList.add('active');
+        });
+    });
 }
 
 /**
@@ -343,10 +359,19 @@ window.addEventListener('scroll', () => {
             const sectionHeight = section.offsetHeight;
 
             if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                // Update desktop nav
                 document.querySelectorAll('.nav-link').forEach(link => {
                     link.classList.remove('active');
                     if (link.getAttribute('href') === `#${sectionId}`) {
                         link.classList.add('active');
+                    }
+                });
+
+                // Update bottom nav
+                document.querySelectorAll('.bottom-nav-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('data-target') === sectionId) {
+                        item.classList.add('active');
                     }
                 });
             }

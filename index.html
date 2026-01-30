@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>이명케어플러스 - 친근한 닥터, 늘 곁에 있어요</title>
     <meta name="description" content="과학적으로 검증된 노치 사운드 테라피로 이명을 관리하세요. 당신만의 맞춤형 치료 프로그램.">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1E4D8B">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,6 +34,26 @@
             </div>
         </div>
     </header>
+
+    <!-- Bottom Navigation (Mobile Only) -->
+    <nav class="bottom-nav">
+        <a href="#home" class="bottom-nav-item active" data-target="home">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">홈</span>
+        </a>
+        <a href="#therapy" class="bottom-nav-item" data-target="therapy">
+            <span class="nav-icon">🎧</span>
+            <span class="nav-label">치료</span>
+        </a>
+        <a href="#about" class="bottom-nav-item" data-target="about">
+            <span class="nav-icon">📖</span>
+            <span class="nav-label">소개</span>
+        </a>
+        <a href="#guide" class="bottom-nav-item" data-target="guide">
+            <span class="nav-icon">❔</span>
+            <span class="nav-label">가이드</span>
+        </a>
+    </nav>
 
     <!-- Hero Section -->
     <section id="home" class="hero">

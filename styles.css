@@ -80,6 +80,13 @@ body {
     padding: 0 var(--spacing-lg);
 }
 
+/* Mobile Safe Areas */
+@supports (padding: env(safe-area-inset-bottom)) {
+    body {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
 /* ===================================
    Header
    =================================== */
@@ -951,9 +958,15 @@ body {
    Responsive Design
    =================================== */
 @media (max-width: 968px) {
+    .container {
+        padding: 0 var(--spacing-md);
+    }
+
     .hero-content {
         grid-template-columns: 1fr;
         text-align: center;
+        min-height: auto;
+        padding-top: var(--spacing-xl);
     }
 
     .hero-title {
@@ -962,6 +975,7 @@ body {
 
     .hero-buttons {
         justify-content: center;
+        flex-wrap: wrap;
     }
 
     .hero-stats {
@@ -970,10 +984,12 @@ body {
 
     .frequency-presets {
         grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
     }
 
     .sound-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
     }
 
     .about-content {
@@ -987,28 +1003,145 @@ body {
     .nav {
         display: none;
     }
+
+    /* Bottom Nav visibility */
+    .bottom-nav {
+        display: flex;
+    }
+
+    .header-content {
+        justify-content: center;
+    }
+
+    .therapy-card {
+        padding: var(--spacing-lg);
+    }
+
+    .frequency-control {
+        padding: var(--spacing-lg);
+    }
 }
 
 @media (max-width: 640px) {
+    .section-title {
+        font-size: 2rem;
+    }
+
     .hero-title {
         font-size: 2rem;
     }
 
     .hero-buttons {
         flex-direction: column;
+        width: 100%;
+    }
+
+    .hero-buttons .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .frequency-value {
+        font-size: 3rem;
     }
 
     .frequency-presets {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .sound-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sound-icon {
+        font-size: 2.5rem;
     }
 
     .therapy-info {
         grid-template-columns: 1fr;
     }
+
+    .therapy-visualizer {
+        padding: var(--spacing-sm);
+    }
+
+    #visualizer {
+        height: 150px;
+    }
+
+    .timer-time {
+        font-size: 1.5rem;
+    }
+
+    .fine-tune {
+        flex-wrap: wrap;
+    }
+
+    .fine-btn {
+        padding: 0.75rem 0.5rem;
+        flex: 1 1 40%;
+        font-size: 0.9rem;
+    }
+}
+
+/* ===================================
+   Bottom Navigation
+   =================================== */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px);
+    display: none;
+    /* Hidden on desktop */
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    z-index: 1000;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--text-tertiary);
+    flex: 1;
+    height: 100%;
+    transition: var(--transition-fast);
+}
+
+.bottom-nav-item.active {
+    color: var(--primary-blue);
+}
+
+.nav-icon {
+    font-size: 1.25rem;
+    margin-bottom: 4px;
+}
+
+.nav-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Improvement for touch targets */
+input[type="range"]::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+}
+
+.btn,
+.preset-btn,
+.sound-card,
+.fine-btn {
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* ===================================
