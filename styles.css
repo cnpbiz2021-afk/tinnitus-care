@@ -274,6 +274,18 @@ body {
     box-shadow: var(--shadow-xl);
 }
 
+.ad-container-main {
+    margin-top: var(--spacing-lg);
+    width: 100%;
+    min-height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
 .hero-wave {
     position: absolute;
     bottom: 0;
