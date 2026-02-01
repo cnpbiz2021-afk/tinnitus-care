@@ -361,7 +361,7 @@ body {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
 }
 
 .preset-btn {
@@ -408,7 +408,7 @@ body {
 .frequency-control {
     background: white;
     border-radius: var(--radius-lg);
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg);
 }
 
 .frequency-display {
@@ -1018,7 +1018,7 @@ body {
     }
 
     .frequency-control {
-        padding: var(--spacing-lg);
+        padding: var(--spacing-sm);
     }
 }
 
@@ -1066,7 +1066,7 @@ body {
     .frequency-presets {
         grid-template-columns: repeat(4, 1fr);
         gap: var(--spacing-xs);
-        margin-bottom: var(--spacing-lg);
+        margin-bottom: var(--spacing-sm);
     }
 
     .preset-btn {
