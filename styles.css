@@ -360,22 +360,19 @@ body {
     font-size: 1.8rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: var(--spacing-sm);
-    display: flex;
-    align-items: baseline;
-    gap: var(--spacing-sm);
-    flex-wrap: wrap;
+    margin-bottom: var(--spacing-xs);
 }
 
-.card-subtitle-inline {
-    font-size: inherit;
-    font-weight: 400;
+.card-subtitle-line {
+    font-size: 1rem;
+    font-weight: 500;
     color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
     opacity: 0.9;
 }
 
-.therapy-control-card .card-subtitle-inline {
-    color: rgba(255, 255, 255, 0.85);
+.therapy-control-card .card-subtitle-line {
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .card-description {
