@@ -185,6 +185,10 @@ function selectSound(soundType) {
     // IF therapy is already playing, update the sound in real-time
     if (audioEngine.isTherapyPlaying) {
         audioEngine.switchSound(soundType);
+    } else if (clicked) {
+        // Card tapped by the user while therapy is stopped: play ~2 s so they can hear it.
+        // (The automatic initial selection on page load has no click, so it stays silent.)
+        audioEngine.previewSound(soundType);
     }
 }
 
@@ -254,7 +258,7 @@ function setupVisualizer() {
         const width = canvas.width;
         const height = canvas.height;
 
-        if (audioEngine.isTherapyPlaying) {
+        if (audioEngine.isTherapyPlaying || audioEngine.isPreviewing) {
             const spec = audioEngine.getSpectrumData();
             if (spec) {
                 // Opaque clear: a spectrum should not leave motion trails

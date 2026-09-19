@@ -296,6 +296,9 @@ class TinnitusAudioEngine {
         // State
         this.isTestTonePlaying = false;
         this.isTherapyPlaying = false;
+        this.isPreviewing = false;              // short sound preview (card tap while therapy is stopped)
+        this._previewTimer = null;
+        this.previewSeconds = 2;
         this.currentVolume = 0.5;
         this.currentSound = 'whitenoise';
 
@@ -1101,6 +1104,9 @@ class TinnitusAudioEngine {
             return;
         }
 
+        // A running preview hands over to the real therapy (its voice is replaced below)
+        this._cancelPreview();
+
         const wasPlaying = this.isTherapyPlaying;
 
         // Re-selecting the sound that is already playing: nothing to do
@@ -1132,10 +1138,48 @@ class TinnitusAudioEngine {
      * notch / gain / analyser nodes stay in the graph (no rebuild on restart).
      */
     stopTherapy() {
+        this._cancelPreview();
         this._voices.filter(v => !v.retiring).forEach(v => this._retireVoice(v, 0.1));
         this.isTherapyPlaying = false;
         this.stopTimer();
         console.log('Therapy stopped');
+    }
+
+    /**
+     * Play a short preview of a sound (default 2 s) through the same chain,
+     * including the notch. Used when a sound card is tapped while therapy is
+     * stopped. If therapy is already playing this is a normal sound switch.
+     */
+    async previewSound(soundType, seconds = this.previewSeconds) {
+        await this.resumeContext();
+        this.currentSound = soundType;
+
+        if (this.isTherapyPlaying) {
+            this._startTherapySync(soundType, true);
+            return;
+        }
+
+        const wasPreviewing = this.isPreviewing;
+        this._applyNotchParams();
+        this._engageSound(soundType, wasPreviewing);   // cross-fade when a preview is already sounding
+        this.isPreviewing = true;
+
+        clearTimeout(this._previewTimer);
+        this._previewTimer = setTimeout(() => this.stopPreview(), seconds * 1000);
+    }
+
+    /** Fade the preview out (no-op when none is running). */
+    stopPreview() {
+        if (!this.isPreviewing) return;
+        this._cancelPreview();
+        this._voices.filter(v => !v.retiring).forEach(v => this._retireVoice(v, 0.2));
+    }
+
+    /** Forget the preview state without touching voices (callers decide what happens to them). */
+    _cancelPreview() {
+        clearTimeout(this._previewTimer);
+        this._previewTimer = null;
+        this.isPreviewing = false;
     }
 
     /* ───────────────────────────── timer ────────────────────────────── */
@@ -1329,6 +1373,7 @@ class TinnitusAudioEngine {
     /* ─────────────────────────── cleanup ────────────────────────────── */
 
     destroy() {
+        this._cancelPreview();
         this.stopTestTone();
         this.stopTherapy();
         this._voices.slice().forEach(v => this._disposeVoice(v));
