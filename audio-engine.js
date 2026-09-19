@@ -17,6 +17,7 @@ class TinnitusAudioEngine {
         this.therapySource = null;
         this.therapyGain = null;
         this.notchFilter = null;
+        this.shapingFilter = null;
 
         // State
         this.isTestTonePlaying = false;
@@ -177,7 +178,7 @@ class TinnitusAudioEngine {
     }
 
     /**
-     * Rain: Brown noise + high-freq crackles
+     * Rain: bright high-passed hiss + frequent sharp droplet pops
      */
     createRainBuffer(duration = 4) {
         const sampleRate = this.audioContext.sampleRate;
@@ -185,24 +186,25 @@ class TinnitusAudioEngine {
         const buffer = this.audioContext.createBuffer(2, bufferSize, sampleRate);
         for (let channel = 0; channel < 2; channel++) {
             const data = buffer.getChannelData(channel);
-            let lastOut = 0;
+            let hp = 0, lastWhite = 0;
             for (let i = 0; i < bufferSize; i++) {
                 const white = Math.random() * 2 - 1;
-                let out = (lastOut + (0.02 * white)) / 1.002;
-                data[i] = out * 2;
-                lastOut = out;
-                if (Math.random() > 0.9995) {
-                    data[i] += (Math.random() * 2 - 1) * 0.5;
+                hp = white - lastWhite + 0.97 * hp;
+                lastWhite = white;
+                let out = hp * 0.35;
+                if (Math.random() > 0.997) {
+                    out += (Math.random() * 2 - 1) * 0.9;
                 }
+                data[i] = Math.max(-1, Math.min(1, out));
             }
         }
         return buffer;
     }
 
     /**
-     * Wave: Brown noise + slow volume modulation
+     * Wave: deep brown-noise rumble with a strong slow rolling swell
      */
-    createWaveBuffer(duration = 6) {
+    createWaveBuffer(duration = 8) {
         const sampleRate = this.audioContext.sampleRate;
         const bufferSize = sampleRate * duration;
         const buffer = this.audioContext.createBuffer(2, bufferSize, sampleRate);
@@ -211,10 +213,9 @@ class TinnitusAudioEngine {
             let lastOut = 0;
             for (let i = 0; i < bufferSize; i++) {
                 const white = Math.random() * 2 - 1;
-                let out = (lastOut + (0.02 * white)) / 1.002;
-                lastOut = out;
-                const lfo = 0.5 + 0.5 * Math.sin((i / bufferSize) * Math.PI * 2);
-                data[i] = out * 4 * lfo;
+                lastOut = (lastOut + (0.02 * white)) / 1.02;
+                const swell = 0.15 + 0.85 * Math.pow(0.5 + 0.5 * Math.sin((i / bufferSize) * Math.PI * 2), 1.5);
+                data[i] = Math.max(-1, Math.min(1, lastOut * 6 * swell));
             }
         }
         return buffer;
@@ -223,7 +224,7 @@ class TinnitusAudioEngine {
     /**
      * Forest: Pink noise + subtle frequency modulation
      */
-    createForestBuffer(duration = 4) {
+    createForestBuffer(duration = 5) {
         const sampleRate = this.audioContext.sampleRate;
         const bufferSize = sampleRate * duration;
         const buffer = this.audioContext.createBuffer(2, bufferSize, sampleRate);
@@ -240,8 +241,12 @@ class TinnitusAudioEngine {
                 b5 = -0.7616 * b5 - white * 0.0168980;
                 let out = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
                 b6 = white * 0.115926;
-                const wind = 0.7 + 0.3 * Math.sin((i / bufferSize) * Math.PI * 4);
-                data[i] = out * wind;
+                const wind = 0.55 + 0.45 * Math.sin((i / bufferSize) * Math.PI * 3);
+                let val = out * wind * 0.9;
+                if (Math.random() > 0.9992) {
+                    val += (Math.random() * 2 - 1) * 0.25;
+                }
+                data[i] = Math.max(-1, Math.min(1, val));
             }
         }
         return buffer;
@@ -267,9 +272,11 @@ class TinnitusAudioEngine {
                 b5 = -0.7616 * b5 - white * 0.0168980;
                 let out = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
                 b6 = white * 0.115926;
-                const chirpEnv = Math.pow(0.5 + 0.5 * Math.sin((i / sampleRate) * Math.PI * 10), 20);
-                const chirp = (Math.random() * 2 - 1) * chirpEnv * 0.15;
-                data[i] = out * 0.4 + chirp;
+                const t = i / sampleRate;
+                const chirpEnv = Math.pow(Math.max(0, Math.sin(t * Math.PI * 6)), 30);
+                const tone = Math.sin(2 * Math.PI * 4200 * t);
+                const chirp = tone * chirpEnv * 0.5;
+                data[i] = Math.max(-1, Math.min(1, out * 0.25 + chirp));
             }
         }
         return buffer;
@@ -278,7 +285,7 @@ class TinnitusAudioEngine {
     /**
      * Temple: Pink noise + resonant peak for "metallic" hum
      */
-    createTempleBuffer(duration = 4) {
+    createTempleBuffer(duration = 6) {
         const sampleRate = this.audioContext.sampleRate;
         const bufferSize = sampleRate * duration;
         const buffer = this.audioContext.createBuffer(2, bufferSize, sampleRate);
@@ -295,11 +302,72 @@ class TinnitusAudioEngine {
                 b5 = -0.7616 * b5 - white * 0.0168980;
                 let out = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
                 b6 = white * 0.115926;
-                const resonance = Math.sin((i / sampleRate) * Math.PI * 2 * 380) * 0.015;
-                data[i] = out + resonance;
+                const t = i / sampleRate;
+                const beat = 0.7 + 0.3 * Math.sin(2 * Math.PI * 0.15 * t);
+                const resonance = (Math.sin(2 * Math.PI * 220 * t) + 0.5 * Math.sin(2 * Math.PI * 440 * t)) * 0.18 * beat;
+                data[i] = Math.max(-1, Math.min(1, out * 0.3 + resonance));
             }
         }
         return buffer;
+    }
+
+    /**
+     * Create a per-sound shaping filter so each therapy sound occupies a
+     * clearly different, easily distinguishable frequency range.
+     */
+    createShapingFilter(soundType) {
+        const filter = this.audioContext.createBiquadFilter();
+        const now = this.audioContext.currentTime;
+        switch (soundType) {
+            case 'rain':
+                filter.type = 'highpass';
+                filter.frequency.setValueAtTime(700, now);
+                filter.Q.setValueAtTime(0.7, now);
+                break;
+            case 'wave':
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(350, now);
+                filter.Q.setValueAtTime(0.7, now);
+                break;
+            case 'forest':
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(1200, now);
+                filter.Q.setValueAtTime(0.6, now);
+                break;
+            case 'night':
+                filter.type = 'highpass';
+                filter.frequency.setValueAtTime(1500, now);
+                filter.Q.setValueAtTime(0.7, now);
+                break;
+            case 'temple':
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(900, now);
+                filter.Q.setValueAtTime(1.0, now);
+                break;
+            case 'whitenoise':
+            default:
+                filter.type = 'allpass';
+                filter.frequency.setValueAtTime(1000, now);
+                filter.Q.setValueAtTime(0.0001, now);
+                break;
+        }
+        return filter;
+    }
+
+    /**
+     * Makeup gain per sound so filtering doesn't make some sounds feel
+     * quieter than others.
+     */
+    getSoundGain(soundType) {
+        const gains = {
+            whitenoise: 0.7,
+            rain: 0.85,
+            wave: 0.9,
+            forest: 0.95,
+            night: 0.75,
+            temple: 0.8
+        };
+        return gains[soundType] !== undefined ? gains[soundType] : 0.7;
     }
 
     /**
@@ -368,6 +436,15 @@ class TinnitusAudioEngine {
         this.therapySource.buffer = buffer;
         this.therapySource.loop = true;
 
+        // Shaping filter gives each sound its own distinct frequency range;
+        // recreated every time since it depends on the selected sound type
+        if (this.shapingFilter) {
+            try {
+                this.shapingFilter.disconnect();
+            } catch (e) { }
+        }
+        this.shapingFilter = this.createShapingFilter(soundType);
+
         // Create notch filter if it doesn't exist
         if (!this.notchFilter) {
             this.notchFilter = this.createNotchFilter(this.currentFrequency);
@@ -376,11 +453,13 @@ class TinnitusAudioEngine {
         // Create gain for therapy if it doesn't exist
         if (!this.therapyGain) {
             this.therapyGain = this.audioContext.createGain();
-            this.therapyGain.gain.setValueAtTime(0.7, this.audioContext.currentTime);
         }
+        // Re-balance loudness per sound so switching sounds feels consistent
+        this.therapyGain.gain.setValueAtTime(this.getSoundGain(soundType), this.audioContext.currentTime);
 
-        // Connect audio graph
-        this.therapySource.connect(this.notchFilter);
+        // Connect audio graph: source -> shaping filter -> notch filter -> gain -> analyser
+        this.therapySource.connect(this.shapingFilter);
+        this.shapingFilter.connect(this.notchFilter);
         if (this.notchFilter.numberOfOutputs === 0 || !this.notchFilter.connected) {
             this.notchFilter.connect(this.therapyGain);
         }
@@ -408,6 +487,11 @@ class TinnitusAudioEngine {
             this.therapySource.stop();
             this.therapySource.disconnect();
             this.therapySource = null;
+        }
+
+        if (this.shapingFilter) {
+            this.shapingFilter.disconnect();
+            this.shapingFilter = null;
         }
 
         if (this.notchFilter) {
