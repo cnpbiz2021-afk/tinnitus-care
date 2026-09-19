@@ -24,7 +24,6 @@ function initializeApp() {
     setupSoundSelection();
     setupVisualizer();
     setupBottomNav();
-    setupAudioAnalysis();
 
     // Handy for browser-console verification: audioEngine.measureLive(), TinnitusAudioEngine.runSelfTest(...)
     window.audioEngine = audioEngine;
@@ -85,7 +84,6 @@ function updateFrequency(frequency) {
 
     if (audioEngine) {
         audioEngine.setFrequency(frequency);
-        updateAnalysisPanel();
     }
 }
 
@@ -228,8 +226,7 @@ async function toggleTherapy() {
 /**
  * Setup audio visualizer
  * Shows the ACTUAL output spectrum (analyser FFT after the notch filter) on a
- * logarithmic frequency axis, with the pre-notch spectrum as a faint dashed
- * line and the notch band marked at the tinnitus frequency.
+ * logarithmic frequency axis, with the notch band marked at the tinnitus frequency.
  */
 const VIS_MIN_HZ = 250;
 const VIS_MAX_HZ = 16000;
@@ -316,12 +313,12 @@ function columnLevels(db, cache) {
 }
 
 /**
- * Draw output spectrum (after notch) + pre-notch reference
+ * Draw output spectrum (after notch)
  */
 function drawSpectrum(ctx, width, height, spec) {
     const cache = getBinCache(width, spec.sampleRate, spec.fftSize);
     const post = columnLevels(spec.postDb, cache);
-    const pre = columnLevels(spec.preDb, cache);
+    const pre = columnLevels(spec.preDb, cache);   // used only to keep the vertical scale stable
 
     // Auto range: top = loudest pre-notch column (smoothed), 60 dB of range
     let peak = -200;
@@ -331,7 +328,7 @@ function drawSpectrum(ctx, width, height, spec) {
     }
     const yMax = visState.yMax === null ? -20 : visState.yMax;
     const range = 60;
-    const top = 26, bottom = height - 38;
+    const top = 26, bottom = height - 24;
     const levelToY = (l) => {
         const t = Math.min(1, Math.max(0, (l - (yMax - range)) / range));
         return bottom - t * (bottom - top);
@@ -349,7 +346,7 @@ function drawSpectrum(ctx, width, height, spec) {
         ctx.moveTo(x, top);
         ctx.lineTo(x, bottom);
         ctx.stroke();
-        ctx.fillText(f >= 1000 ? `${f / 1000}k` : `${f}`, x, height - 22);
+        ctx.fillText(f >= 1000 ? `${f / 1000}k` : `${f}`, x, height - 8);
     });
 
     // Notch band (from the actual bandwidth setting)
@@ -359,18 +356,6 @@ function drawSpectrum(ctx, width, height, spec) {
     const x2 = freqToX(f * Math.pow(2, bw / 2), width);
     ctx.fillStyle = 'rgba(231, 76, 60, 0.18)';
     ctx.fillRect(x1, top, Math.max(2, x2 - x1), bottom - top);
-
-    // Pre-notch spectrum (reference, dashed)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    cache.cols.forEach((c, i) => {
-        const y = levelToY(pre[i]);
-        if (i === 0) ctx.moveTo(c.x, y); else ctx.lineTo(c.x, y);
-    });
-    ctx.stroke();
-    ctx.setLineDash([]);
 
     // Post-notch spectrum (actual output): filled area + glowing line
     ctx.beginPath();
@@ -398,14 +383,6 @@ function drawSpectrum(ctx, width, height, spec) {
     });
     ctx.stroke();
     ctx.shadowBlur = 0;
-
-    // Legend
-    ctx.textAlign = 'left';
-    ctx.font = '11px Noto Sans KR';
-    ctx.fillStyle = '#4A90E2';
-    ctx.fillText('━ 실제 출력 스펙트럼 (노치 후)', 8, height - 6);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-    ctx.fillText('┅ 노치 전', 8 + 170, height - 6);
 }
 
 /**
@@ -461,140 +438,6 @@ function drawIdleState(ctx, width, height) {
     ctx.font = '16px Noto Sans KR';
     ctx.textAlign = 'center';
     ctx.fillText('치료를 시작하려면 아래 버튼을 클릭하세요', width / 2, height / 2 + 60);
-}
-
-/**
- * ===== Audio analysis / verification panel =====
- * Everything shown here is read back from the real Web Audio nodes:
- * AudioParam values, the BiquadFilterNode frequency response, and the
- * AnalyserNode FFT of the actual output.
- */
-function fmtDb(v) {
-    if (v === null || v === undefined || !Number.isFinite(v)) return '—';
-    return `${v.toFixed(1)} dB`;
-}
-
-function setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-}
-
-function setupAudioAnalysis() {
-    const select = document.getElementById('aaBandwidth');
-    if (select) {
-        select.value = String(audioEngine.notchBandwidthOctaves);
-        select.addEventListener('change', (e) => {
-            audioEngine.setNotchBandwidth(parseFloat(e.target.value));
-            updateAnalysisPanel();
-        });
-    }
-    updateAnalysisPanel();
-    setInterval(() => {
-        const panel = document.getElementById('audioAnalysis');
-        if (panel && panel.open) updateAnalysisPanel();
-    }, 250);
-}
-
-function updateAnalysisPanel() {
-    const panel = document.getElementById('audioAnalysis');
-    if (!panel || !audioEngine || !audioEngine.notchFilters.length) return;
-    if (!panel.open) return;
-
-    const st = audioEngine.getNotchState();
-    setText('aaFreq', `${audioEngine.tinnitusFrequency} Hz`);
-    setText('aaCentre', `${st.centreParamHz.toFixed(1)} Hz`);
-    setText('aaQ', `${st.notchQEquivalent.toFixed(2)} (단계당 ${st.qPerStage.toFixed(2)} × ${st.stages})`);
-    setText('aaBw', `${st.measuredBandwidthOct.toFixed(2)} oct`);
-
-    const chain = audioEngine.verifySignalChain();
-    const chainEl = document.getElementById('aaChain');
-    if (chainEl) {
-        chainEl.textContent = chain.ok
-            ? `${chain.path.join(' → ')}  ✓ 연결 확인 (활성 소스 ${chain.liveVoices}, 페이드 중 ${chain.aliveVoices - chain.liveVoices})`
-            : `⚠ 연결 오류: ${chain.errors.join('; ')}`;
-        chainEl.classList.toggle('aa-bad', !chain.ok);
-    }
-
-    const badge = document.getElementById('aaBadge');
-    const m = audioEngine.isTherapyPlaying ? audioEngine.measureLive() : null;
-    if (!m || m.silent) {
-        setText('aaPre', '—');
-        setText('aaPost', '—');
-        setText('aaAtten', '치료 재생 중 측정');
-        setText('aaDip', '—');
-        if (badge) { badge.textContent = '대기'; badge.dataset.state = 'idle'; }
-        return;
-    }
-    setText('aaPre', fmtDb(m.preDb));
-    setText('aaPost', fmtDb(m.postDb));
-    setText('aaAtten', fmtDb(m.attenuationDb));
-    setText('aaDip', fmtDb(m.dipVsShouldersDb));
-    if (badge) {
-        const ok = m.attenuationDb >= 20;
-        badge.textContent = ok ? `노치 ${m.attenuationDb.toFixed(0)} dB 확인` : '노치 약함';
-        badge.dataset.state = ok ? 'ok' : 'warn';
-    }
-}
-
-/**
- * Offline self-test: renders the real engine graph in an OfflineAudioContext
- * (same notch chain, same code path) and compares FFT levels before / after.
- */
-async function runNotchSelfTest(allSounds) {
-    const out = document.getElementById('aaResult');
-    const buttons = document.querySelectorAll('.aa-btn');
-    buttons.forEach(b => b.disabled = true);
-    out.textContent = '측정 중...';
-
-    const sounds = allSounds ? Object.keys(TINNITUS_SOUND_PROFILES) : [audioEngine.currentSound];
-    const rows = [];
-    try {
-        for (const sound of sounds) {
-            await new Promise(r => setTimeout(r, 0));   // keep the UI responsive between renders
-            const r = await TinnitusAudioEngine.runSelfTest({
-                sound,
-                frequency: audioEngine.tinnitusFrequency,
-                bandwidthOctaves: audioEngine.notchBandwidthOctaves,
-                stages: audioEngine.notchStages,
-                sampleRate: audioEngine.audioContext.sampleRate
-            });
-            rows.push(r);
-        }
-    } catch (err) {
-        out.textContent = `검증 실패: ${err.message}`;
-        buttons.forEach(b => b.disabled = false);
-        return;
-    }
-
-    const table = document.createElement('table');
-    table.className = 'aa-table';
-    const head = table.createTHead().insertRow();
-    ['사운드', '노치 전', '노치 후', '감쇠', '판정'].forEach(t => {
-        const th = document.createElement('th');
-        th.textContent = t;
-        head.appendChild(th);
-    });
-    const body = table.createTBody();
-    rows.forEach(r => {
-        const tr = body.insertRow();
-        const cells = [
-            TINNITUS_SOUND_PROFILES[r.sound].label,
-            fmtDb(r.preDb), fmtDb(r.postDb), fmtDb(r.attenuationDb),
-            r.pass ? '✓ 통과' : '✗ 확인 필요'
-        ];
-        cells.forEach((t, i) => {
-            const td = tr.insertCell();
-            td.textContent = t;
-            if (i === 4) td.className = r.pass ? 'aa-pass' : 'aa-fail';
-        });
-    });
-    out.textContent = '';
-    const cap = document.createElement('div');
-    cap.className = 'aa-caption';
-    cap.textContent = `${audioEngine.tinnitusFrequency} Hz 기준 · FFT ${rows[0].sampleRate} Hz 오프라인 렌더 · 판정 기준(개발용): 감쇠 20 dB 이상 + 해당 주파수에 충분한 에너지`;
-    out.appendChild(cap);
-    out.appendChild(table);
-    buttons.forEach(b => b.disabled = false);
 }
 
 /**

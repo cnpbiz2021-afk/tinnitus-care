@@ -12,7 +12,7 @@
 - 🔊 **노치 필터링**: Web Audio API `BiquadFilterNode(type="notch")`로 실제 출력 신호에서 설정 주파수 대역을 감쇠
 - 🌊 **한국형 사운드스케이프**: 화이트 노이즈, 빗소리, 대나무 숲, 풍경 소리 등
 - 📊 **실시간 스펙트럼**: 실제 출력 신호의 FFT 스펙트럼과 노치 위치 표시
-- ✅ **오디오 분석 · 검증**: 노치 전/후 레벨, 실제 감쇠량(dB), 신호 경로 확인, 오프라인 자체 검증
+- ✅ **노치 검증(개발자용)**: 화면에는 표시하지 않으며, 콘솔과 `verify/` 스크립트로 노치 감쇠량과 신호 경로를 확인
 - ⏱️ **치료 타이머**: 일일 치료 시간 추적
 
 ---
@@ -87,7 +87,7 @@ xdg-open index.html  # Linux
 #### STEP 3: 치료 시작
 1. 볼륨을 편안한 수준으로 조절하세요
 2. "치료 시작" 버튼을 클릭하세요
-3. 스펙트럼 화면에서 실제 출력의 노치(딥)를 확인하세요. "오디오 분석 · 검증"을 펼치면 노치 전/후 레벨과 감쇠량이 표시됩니다
+3. 스펙트럼 화면에서 실제 출력의 노치(딥)를 확인하세요
 4. 하루 30분 이상, 최소 3개월간 꾸준히 진행하세요
 
 ---
@@ -149,9 +149,9 @@ audioEngine.notchStages;                 // 직렬 노치 단 수 (생성자 옵
 
 ## ✅ 노치 검증 방법
 
-1. **화면에서**: 치료 시작 → "오디오 분석 · 검증" 펼치기 → 노치 전/후 레벨과 "실제 노치 감쇠량" 확인 (재생 중 AnalyserNode FFT 기반)
-2. **"노치 검증" 버튼**: 실제 엔진 그래프를 OfflineAudioContext로 렌더링해, 동일한 노이즈에 대해 노치 유/무를 FFT로 비교
-3. **콘솔에서**: `audioEngine.measureLive()`, `await TinnitusAudioEngine.runSelfTest({ sound: 'whitenoise', frequency: 6000 })`
+1. **콘솔에서** (재생 중): `audioEngine.measureLive()` — 노치 전/후 레벨과 감쇠량(dB)
+2. **콘솔에서** (오프라인 렌더): `await TinnitusAudioEngine.runSelfTest({ sound: 'whitenoise', frequency: 6000 })`
+3. **신호 경로**: `audioEngine.verifySignalChain()`
 4. **자동 테스트** (`verify/` 폴더, Node 18+):
 
 ```bash
