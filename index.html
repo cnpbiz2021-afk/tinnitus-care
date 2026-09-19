@@ -118,8 +118,8 @@
             <div class="therapy-card">
                 <div class="card-header">
                     <div class="step-badge">STEP 1</div>
-                    <h3 class="card-title">내 이명 주파수 찾기</h3>
-                    <p class="card-description">슬라이더를 조절하여 당신의 이명 소리와 가장 유사한 주파수를 찾아보세요</p>
+                    <h3 class="card-title">이명 주파수 설정</h3>
+                    <p class="card-description">슬라이더로 이명 소리와 비슷하게 느껴지는 주파수를 직접 설정하세요. 임상 검사(pitch matching)가 아닌 참고용 설정입니다.</p>
                 </div>
 
                 <div class="frequency-presets">
@@ -219,6 +219,41 @@
                     <canvas id="visualizer" width="800" height="200"></canvas>
                 </div>
 
+                <!-- Audio analysis / verification (collapsed by default) -->
+                <details class="audio-analysis" id="audioAnalysis" ontoggle="updateAnalysisPanel()">
+                    <summary>
+                        <span class="aa-title">오디오 분석 · 검증</span>
+                        <span class="aa-badge" id="aaBadge" data-state="idle">대기</span>
+                    </summary>
+                    <div class="aa-body">
+                        <p class="aa-note">노치가 화면 표시가 아니라 실제 출력 신호에 적용되는지 FFT로 확인하는 영역입니다. 표시 값은 필터 동작 검증용이며 치료 효과나 임상 수치를 의미하지 않습니다.</p>
+                        <div class="aa-grid">
+                            <div class="aa-item"><span class="aa-label">설정한 이명 주파수</span><span class="aa-value" id="aaFreq">—</span></div>
+                            <div class="aa-item"><span class="aa-label">노치 중심 (필터 실제값)</span><span class="aa-value" id="aaCentre">—</span></div>
+                            <div class="aa-item"><span class="aa-label">노치 Q (등가)</span><span class="aa-value" id="aaQ">—</span></div>
+                            <div class="aa-item"><span class="aa-label">노치 대역폭 (−3 dB)</span><span class="aa-value" id="aaBw">—</span></div>
+                            <div class="aa-item"><span class="aa-label">노치 전 (해당 주파수)</span><span class="aa-value" id="aaPre">—</span></div>
+                            <div class="aa-item"><span class="aa-label">노치 후 (해당 주파수)</span><span class="aa-value" id="aaPost">—</span></div>
+                            <div class="aa-item aa-strong"><span class="aa-label">실제 노치 감쇠량</span><span class="aa-value" id="aaAtten">—</span></div>
+                            <div class="aa-item"><span class="aa-label">주변 대비 딥</span><span class="aa-value" id="aaDip">—</span></div>
+                        </div>
+                        <div class="aa-row">
+                            <label for="aaBandwidth">노치 대역폭 설정 (개발용)</label>
+                            <select id="aaBandwidth">
+                                <option value="0.25">1/4 옥타브</option>
+                                <option value="0.5">1/2 옥타브 (기본값)</option>
+                                <option value="1">1 옥타브</option>
+                            </select>
+                        </div>
+                        <div class="aa-chain" id="aaChain"></div>
+                        <div class="aa-actions">
+                            <button type="button" class="aa-btn" onclick="runNotchSelfTest(false)">노치 검증 (선택한 사운드)</button>
+                            <button type="button" class="aa-btn" onclick="runNotchSelfTest(true)">전체 사운드 검증</button>
+                        </div>
+                        <div class="aa-result" id="aaResult" aria-live="polite"></div>
+                    </div>
+                </details>
+
                 <div class="therapy-controls">
                     <div class="volume-control">
                         <label class="control-label">
@@ -270,10 +305,10 @@
             <div class="about-content">
                 <div class="about-card">
                     <div class="about-number">01</div>
-                    <h3 class="about-title">주파수 매칭</h3>
+                    <h3 class="about-title">주파수 설정</h3>
                     <p class="about-text">
-                        당신의 이명 주파수를 정확하게 찾아냅니다.
-                        개인마다 다른 이명 소리를 맞춤형으로 분석합니다.
+                        이명과 비슷하게 느껴지는 주파수를 직접 설정합니다.
+                        이 설정은 임상적 이명 검사(pitch matching)를 대체하지 않습니다.
                     </p>
                 </div>
                 <div class="about-card">
@@ -334,8 +369,8 @@
                 <div class="guide-step">
                     <div class="guide-step-number">3</div>
                     <div class="guide-step-content">
-                        <h3>주파수 매칭</h3>
-                        <p>이명 소리와 가장 유사한 주파수를 찾으세요</p>
+                        <h3>주파수 설정</h3>
+                        <p>이명 소리와 비슷하게 느껴지는 주파수를 설정하세요</p>
                     </div>
                 </div>
                 <div class="guide-step">
