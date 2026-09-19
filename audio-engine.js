@@ -19,6 +19,11 @@ class TinnitusAudioEngine {
         this.notchFilter = null;
         this.shapingFilter = null;
 
+        // Sound preview (Step 2 card selection quick sample)
+        this.previewSource = null;
+        this.previewNodes = null;
+        this.previewTimeoutId = null;
+
         // State
         this.isTestTonePlaying = false;
         this.isTherapyPlaying = false;
@@ -477,6 +482,97 @@ class TinnitusAudioEngine {
         }
 
         console.log(`Therapy ${isSwitching ? 'switched to' : 'started with'} ${soundType} at ${this.currentFrequency}Hz (notched)`);
+    }
+
+    /**
+     * Play a short (default 2s) sample of a sound so the user can hear the
+     * difference before committing to it in Step 2. Does not affect an
+     * already-running therapy session.
+     */
+    async previewSound(soundType, duration = 2) {
+        await this.resumeContext();
+
+        // Cancel any preview already in progress
+        this.stopPreview();
+
+        let buffer;
+        switch (soundType) {
+            case 'whitenoise':
+                buffer = this.createWhiteNoiseBuffer(2);
+                break;
+            case 'rain':
+                buffer = this.createRainBuffer(4);
+                break;
+            case 'wave':
+                buffer = this.createWaveBuffer(8);
+                break;
+            case 'forest':
+                buffer = this.createForestBuffer(5);
+                break;
+            case 'night':
+                buffer = this.createNightBuffer(3);
+                break;
+            case 'temple':
+                buffer = this.createTempleBuffer(6);
+                break;
+            default:
+                buffer = this.createWhiteNoiseBuffer(2);
+        }
+
+        const source = this.audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+
+        const shaping = this.createShapingFilter(soundType);
+        const notch = this.createNotchFilter(this.currentFrequency);
+        const gain = this.audioContext.createGain();
+
+        const now = this.audioContext.currentTime;
+        const targetGain = this.getSoundGain(soundType);
+        const fade = 0.08;
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(targetGain, now + fade);
+        gain.gain.setValueAtTime(targetGain, Math.max(now + fade, now + duration - fade));
+        gain.gain.linearRampToValueAtTime(0.0001, now + duration);
+
+        source.connect(shaping);
+        shaping.connect(notch);
+        notch.connect(gain);
+        gain.connect(this.analyser);
+
+        source.start(now);
+        source.stop(now + duration + 0.05);
+
+        this.previewSource = source;
+        this.previewNodes = [shaping, notch, gain];
+
+        source.onended = () => {
+            [source, shaping, notch, gain].forEach(node => {
+                try { node.disconnect(); } catch (e) { }
+            });
+            if (this.previewSource === source) {
+                this.previewSource = null;
+                this.previewNodes = null;
+            }
+        };
+    }
+
+    /**
+     * Stop any in-progress sound preview immediately
+     */
+    stopPreview() {
+        if (this.previewSource) {
+            try {
+                this.previewSource.stop();
+            } catch (e) { }
+            this.previewSource = null;
+        }
+        if (this.previewNodes) {
+            this.previewNodes.forEach(node => {
+                try { node.disconnect(); } catch (e) { }
+            });
+            this.previewNodes = null;
+        }
     }
 
     /**

@@ -31,8 +31,8 @@ function initializeApp() {
         alert('권장 치료 시간인 30분이 경과하여 치료를 자동으로 종료합니다. 수고하셨습니다!');
     };
 
-    // Set initial sound selection
-    selectSound('whitenoise');
+    // Set initial sound selection (no preview sound on page load)
+    selectSound('whitenoise', true);
 
     console.log('Tinnitus Care initialized');
 }
@@ -151,14 +151,19 @@ function setupSoundSelection() {
 /**
  * Select sound type
  */
-function selectSound(soundType) {
+function selectSound(soundType, skipPreview) {
     audioEngine.currentSound = soundType;
 
     // Update active state
     document.querySelectorAll('.sound-card').forEach(card => {
         card.classList.remove('active');
     });
-    event.target.closest('.sound-card').classList.add('active');
+    if (typeof event !== 'undefined' && event && event.target) {
+        event.target.closest('.sound-card').classList.add('active');
+    } else {
+        const targetCard = document.querySelector(`.sound-card[onclick*="'${soundType}'"]`);
+        if (targetCard) targetCard.classList.add('active');
+    }
 
     // Update selected sound display
     const soundNames = {
@@ -175,6 +180,9 @@ function selectSound(soundType) {
     // IF therapy is already playing, update the sound in real-time
     if (audioEngine.isTherapyPlaying) {
         audioEngine.startTherapy(soundType, true);
+    } else if (!skipPreview) {
+        // Otherwise, play a quick 2-second preview so the user can hear the sound
+        audioEngine.previewSound(soundType, 2);
     }
 }
 
@@ -208,6 +216,7 @@ async function toggleTherapy() {
         audioEngine.stopTherapy();
         updateTherapyUI(false);
     } else {
+        audioEngine.stopPreview();
         await audioEngine.startTherapy(audioEngine.currentSound);
         updateTherapyUI(true);
     }
