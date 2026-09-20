@@ -1055,6 +1055,13 @@ body {
         font-size: 2rem;
     }
 
+    .hero-tagline {
+        display: inline-block;
+        white-space: nowrap;
+        font-size: clamp(1rem, 5.6vw, 2rem);
+        letter-spacing: -0.03em;
+    }
+
     .card-header {
         margin-bottom: var(--spacing-md);
     }
